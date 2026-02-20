@@ -1,0 +1,72 @@
+CREATE TABLE dbo.GroupCompany (
+    GroupCompanyId INT IDENTITY(1,1) PRIMARY KEY,
+    GroupCompanyName NVARCHAR(150) NOT NULL,
+    C_USER_ID INT NOT NULL,
+    C_DATETIME DATETIME NOT NULL DEFAULT GETDATE(),
+    M_USER_ID INT NULL,
+    M_DATETIME DATETIME NULL,
+    IS_DELETED BIT NOT NULL DEFAULT 0
+);
+
+CREATE TABLE dbo.Plant (
+    PlantId INT IDENTITY(1,1) PRIMARY KEY,
+    GroupCompanyId INT NOT NULL,
+    PlantName NVARCHAR(150) NOT NULL,
+    PlantCountry NVARCHAR(100) NOT NULL,
+    C_USER_ID INT NOT NULL,
+    C_DATETIME DATETIME NOT NULL DEFAULT GETDATE(),
+    M_USER_ID INT NULL,
+    M_DATETIME DATETIME NULL,
+    IS_DELETED BIT NOT NULL DEFAULT 0,
+    CONSTRAINT FK_Plant_GroupCompany FOREIGN KEY (GroupCompanyId) REFERENCES dbo.GroupCompany(GroupCompanyId)
+);
+
+CREATE TABLE dbo.Supplier (
+    SupplierId INT IDENTITY(1,1) PRIMARY KEY,
+    SupplierName NVARCHAR(150) NOT NULL,
+    C_USER_ID INT NOT NULL,
+    C_DATETIME DATETIME NOT NULL DEFAULT GETDATE(),
+    M_USER_ID INT NULL,
+    M_DATETIME DATETIME NULL,
+    IS_DELETED BIT NOT NULL DEFAULT 0
+);
+
+CREATE TABLE dbo.Currency (
+    CurrencyId INT IDENTITY(1,1) PRIMARY KEY,
+    CurrencyCode NVARCHAR(10) NOT NULL,
+    C_USER_ID INT NOT NULL,
+    C_DATETIME DATETIME NOT NULL DEFAULT GETDATE(),
+    M_USER_ID INT NULL,
+    M_DATETIME DATETIME NULL,
+    IS_DELETED BIT NOT NULL DEFAULT 0
+);
+
+CREATE TABLE dbo.TableName (
+    RecordId INT IDENTITY(1,1) PRIMARY KEY,
+    GroupCompanyId INT NOT NULL,
+    PlantId INT NOT NULL,
+    SupplierId INT NOT NULL,
+    CurrencyId INT NOT NULL,
+    FieldOne NVARCHAR(100) NOT NULL,
+    FieldTwo NVARCHAR(250) NULL,
+    StartDate DATETIME NOT NULL,
+    EndDate DATETIME NOT NULL,
+    Amount DECIMAL(18,2) NOT NULL DEFAULT 0,
+    C_USER_ID INT NOT NULL,
+    C_DATETIME DATETIME NOT NULL DEFAULT GETDATE(),
+    M_USER_ID INT NULL,
+    M_DATETIME DATETIME NULL,
+    IS_DELETED BIT NOT NULL DEFAULT 0,
+    CONSTRAINT FK_TableName_GroupCompany FOREIGN KEY (GroupCompanyId) REFERENCES dbo.GroupCompany(GroupCompanyId),
+    CONSTRAINT FK_TableName_Plant FOREIGN KEY (PlantId) REFERENCES dbo.Plant(PlantId),
+    CONSTRAINT FK_TableName_Supplier FOREIGN KEY (SupplierId) REFERENCES dbo.Supplier(SupplierId),
+    CONSTRAINT FK_TableName_Currency FOREIGN KEY (CurrencyId) REFERENCES dbo.Currency(CurrencyId)
+);
+
+CREATE INDEX IX_Plant_GroupCompanyId ON dbo.Plant(GroupCompanyId);
+CREATE INDEX IX_TableName_GroupCompanyId ON dbo.TableName(GroupCompanyId);
+CREATE INDEX IX_TableName_PlantId ON dbo.TableName(PlantId);
+CREATE INDEX IX_TableName_SupplierId ON dbo.TableName(SupplierId);
+CREATE INDEX IX_TableName_CurrencyId ON dbo.TableName(CurrencyId);
+CREATE INDEX IX_TableName_FieldOne ON dbo.TableName(FieldOne);
+CREATE INDEX IX_TableName_StartDate ON dbo.TableName(StartDate);
