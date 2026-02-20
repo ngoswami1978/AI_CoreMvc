@@ -1,0 +1,23 @@
+@model MyProject.ViewModels.TableNameViewModel
+<div class="modal fade" id="myModal" data-bs-backdrop="static" tabindex="-1">
+  <div class="modal-dialog modal-lg"><div class="modal-content">
+    <div class="modal-header text-white" style="background:#009688"><h5 id="modalTitleText">Add New</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+      <form id="myForm">
+        <input type="hidden" id="recordId" value="0" />
+        <div class="row g-3">
+          <div class="col-md-6"><label>Field One <span class="text-danger">*</span></label><input id="fieldOne" class="form-control" /></div>
+          <div class="col-md-6"><label>Field Two</label><input id="fieldTwo" class="form-control" /></div>
+          <div class="col-md-6"><label>Group Company <span class="text-danger">*</span></label><select id="parentId" class="form-select select2-modal">@foreach (var x in Model.GroupCompanyList){<option value="@x.Value">@x.Text</option>}</select></div>
+          <div class="col-md-6"><label>Plant <span class="text-danger">*</span></label><select id="childId" class="form-select select2-modal">@foreach (var x in Model.PlantList){<option value="@x.Value">@x.Text</option>}</select></div>
+          <div class="col-md-6"><label>Plant Country</label><input id="autoFilledField" readonly class="form-control bg-light" /></div>
+          <div class="col-md-6"><label>Supplier <span class="text-danger">*</span></label><select id="supplierId" class="form-select select2-modal">@foreach (var x in Model.SupplierList){<option value="@x.Value">@x.Text</option>}</select></div>
+          <div class="col-md-6"><label>Currency <span class="text-danger">*</span></label><select id="currencyId" class="form-select select2-modal">@foreach (var x in Model.CurrencyList){<option value="@x.Value">@x.Text</option>}</select></div>
+          <div class="col-md-3"><label>Start Date <span class="text-danger">*</span></label><input id="startDate" type="date" class="form-control" /></div>
+          <div class="col-md-3"><label>End Date <span class="text-danger">*</span></label><input id="endDate" type="date" class="form-control" /></div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer"><button class="btn btn-primary" onclick="SaveRecord()">Save</button><button class="btn btn-secondary" data-bs-dismiss="modal">Close</button></div>
+  </div></div>
+</div>

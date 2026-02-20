@@ -1,0 +1,40 @@
+@using Newtonsoft.Json
+@model MyProject.ViewModels.TableNameViewModel
+@{
+    ViewData["Title"] = "TableName";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+@Html.AntiForgeryToken()
+<nav aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">Home</li><li class="breadcrumb-item active">TableName</li></ol></nav>
+<h4 class="fw-bold">TableName Maintenance</h4>
+<div class="card mb-3"><div class="card-body">
+    <div class="row g-3">
+        <div class="col-md-4"><label>Group Company</label><select id="filterGroupCompany" class="form-select select2 filter-select">@foreach (var x in Model.GroupCompanyList){<option value="@x.Value">@x.Text</option>}</select></div>
+        <div class="col-md-4"><label>Plant</label><select id="filterPlant" class="form-select select2 filter-select">@foreach (var x in Model.PlantList){<option value="@x.Value">@x.Text</option>}</select></div>
+        <div class="col-md-4"><label>Field One</label><input id="filterFieldOne" class="form-control" /></div>
+    </div>
+</div></div>
+<div class="mb-3 d-flex gap-2">
+    <button class="btn btn-primary" onclick="SearchRecords()">Search</button>
+    <button class="btn btn-secondary" onclick="ClearFilters()">Cancel Search</button>
+    <button class="btn btn-success" onclick="OpenAddModal()">Add New</button>
+    <button class="btn btn-outline-primary">Import Excel</button>
+    <button class="btn btn-outline-success" onclick="ExportToExcel()">Export To Excel</button>
+</div>
+<table id="gridTable" class="table table-bordered w-100">
+    <thead>
+        <tr style="background:#009688;color:#fff"><th>Actions</th><th>Field One</th><th>Group Company</th><th>Plant</th><th>Country</th><th>Supplier</th><th>Currency</th><th>Start Date</th><th>End Date</th><th>Amount</th></tr>
+        <tr><th></th><th><input class="form-control form-control-sm col-search" /></th><th><input class="form-control form-control-sm col-search" /></th><th><input class="form-control form-control-sm col-search" /></th><th><input class="form-control form-control-sm col-search" /></th><th><input class="form-control form-control-sm col-search" /></th><th><input class="form-control form-control-sm col-search" /></th><th><input class="form-control form-control-sm col-search" /></th><th><input class="form-control form-control-sm col-search" /></th><th><input class="form-control form-control-sm col-search" /></th></tr>
+    </thead>
+    <tbody></tbody>
+</table>
+<partial name="_FormModal" model="Model" />
+<script>
+var dropdownData = {
+groupCompany: @Html.Raw(JsonConvert.SerializeObject(Model.GroupCompanyList.Where(x=>x.Value!="").Select(x=>new{value=x.Value,text=x.Text}))),
+plant: @Html.Raw(JsonConvert.SerializeObject(Model.PlantList.Where(x=>x.Value!="").Select(x=>new{value=x.Value,text=x.Text}))),
+supplier: @Html.Raw(JsonConvert.SerializeObject(Model.SupplierList.Where(x=>x.Value!="").Select(x=>new{value=x.Value,text=x.Text}))),
+currency: @Html.Raw(JsonConvert.SerializeObject(Model.CurrencyList.Where(x=>x.Value!="").Select(x=>new{value=x.Value,text=x.Text})))
+};
+</script>
+@section Scripts { <script src="~/js/tablename.js"></script> }
