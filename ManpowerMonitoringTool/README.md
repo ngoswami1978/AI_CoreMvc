@@ -39,9 +39,9 @@ The default selector values are examples only:
 | UI field | Default | Purpose |
 | --- | --- | --- |
 | Website URL | `http://localhost:5000` | The page Selenium opens. |
-| Unit selector | `#unitName` | UnitName search/select control. |
-| Year selector | `#year` | Year input/select control. |
-| Month selector | `#month` | Month input/select control. |
+| Unit selector | `#unit_list` | UnitName search/select control. |
+| Year selector | `#SelectedYear` | Year input/select control. |
+| Month selector | `#SelectedMonth` | Month input/select control. The tool writes the first three month characters, for example `Apr`, `May`, or `Jun`. |
 | Search button | `#btnSearch` | Button clicked after unit/month/year are set. Leave blank if search is automatic. |
 | Cost table | `table` | Table containing rows such as Finance, Quality, Manufacturing, and Maintenance. |
 
