@@ -54,22 +54,60 @@ public sealed class ManpowerSeleniumUploader : IDisposable
         }
 
         StartBrowser();
-        foreach (var entry in entries)
+        foreach (var group in BuildConsecutiveContextGroups(entries))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            _selectGridEntry?.Invoke(entry);
-            _log($"Processing grid row: {entry.UnitName}, {entry.CurrentMonth}/{entry.CurrentYear}, {entry.Function}");
-            WaitBeforeEntry("Starting row entry");
+            var firstEntry = group[0];
+            _log($"Processing {group.Count} grid row(s) for {firstEntry.UnitName}, {firstEntry.CurrentMonth}/{firstEntry.CurrentYear}");
+            WaitBeforeEntry("Starting unit/month/year group entry");
             WaitForManualAlertToClose(cancellationToken);
-            SelectPageContext(entry.UnitName, entry.CurrentYear, entry.CurrentMonth);
-            if (FillFunctionRow(entry))
+            SelectPageContext(firstEntry.UnitName, firstEntry.CurrentYear, firstEntry.CurrentMonth);
+
+            var filledAnyRow = false;
+            foreach (var entry in group)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                _selectGridEntry?.Invoke(entry);
+                _log($"Entering function row: {entry.UnitName}, {entry.CurrentMonth}/{entry.CurrentYear}, {entry.Function}");
+                WaitBeforeEntry("Starting function row entry");
+                filledAnyRow |= FillFunctionRow(entry);
+            }
+
+            if (filledAnyRow)
             {
                 ClickSaveButtonIfConfigured();
             }
         }
 
-        _log("Upload completed. Configured save button was clicked after each filled row.");
+        _log("Upload completed. Configured save button was clicked after each unit/month/year group.");
     }
+    private static IEnumerable<IReadOnlyList<ManpowerEntry>> BuildConsecutiveContextGroups(IReadOnlyList<ManpowerEntry> entries)
+    {
+        var group = new List<ManpowerEntry>();
+        foreach (var entry in entries)
+        {
+            if (group.Count > 0 && !HasSameContext(group[0], entry))
+            {
+                yield return group;
+                group = new List<ManpowerEntry>();
+            }
+
+            group.Add(entry);
+        }
+
+        if (group.Count > 0)
+        {
+            yield return group;
+        }
+    }
+
+    private static bool HasSameContext(ManpowerEntry left, ManpowerEntry right)
+    {
+        return string.Equals(left.UnitName, right.UnitName, StringComparison.OrdinalIgnoreCase)
+            && left.CurrentYear == right.CurrentYear
+            && left.CurrentMonth == right.CurrentMonth;
+    }
+
 
     private void SelectPageContext(string unitName, int year, int month)
     {
@@ -466,7 +504,6 @@ public sealed class ManpowerSeleniumUploader : IDisposable
             || exception.Message.Contains("user prompt", StringComparison.OrdinalIgnoreCase);
     }
 
-<<<<<<< codex/develop-monitoring-tool-with-selenium-5x4v5h
     private static bool IsClickOrInteractIssue(WebDriverException exception)
     {
         return exception.Message.Contains("element click intercepted", StringComparison.OrdinalIgnoreCase)
@@ -475,8 +512,7 @@ public sealed class ManpowerSeleniumUploader : IDisposable
             || exception.Message.Contains("Other element would receive the click", StringComparison.OrdinalIgnoreCase);
     }
 
-=======
->>>>>>> main
+
     private static string Normalize(string value)
     {
         return Regex.Replace(value, "[^a-zA-Z0-9]", string.Empty).ToLowerInvariant();
