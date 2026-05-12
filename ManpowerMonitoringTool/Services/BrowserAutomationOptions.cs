@@ -7,7 +7,7 @@ public sealed class BrowserAutomationOptions
     public string YearSelector { get; init; } = string.Empty;
     public string MonthSelector { get; init; } = string.Empty;
     public string SearchButtonSelector { get; init; } = string.Empty;
-    public string CancelButtonSelector { get; init; } = "#revert_cancel";
+    public string SaveButtonSelector { get; init; } = "#convert_table_newid";
     public string TableSelector { get; init; } = "#MANPOWERCOST_FUNCTIONWISE_TAB2";
     public bool KeepBrowserOpen { get; init; } = true;
 }

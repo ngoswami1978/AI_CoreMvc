@@ -10,6 +10,8 @@ namespace ManpowerMonitoringTool.Services;
 
 public sealed class ManpowerSeleniumUploader : IDisposable
 {
+    private const int EntryDelayMilliseconds = 2000;
+
     private readonly BrowserAutomationOptions _options;
     private readonly Action<string> _log;
     private readonly Action<ManpowerEntry>? _selectGridEntry;
@@ -57,17 +59,21 @@ public sealed class ManpowerSeleniumUploader : IDisposable
             cancellationToken.ThrowIfCancellationRequested();
             _selectGridEntry?.Invoke(entry);
             _log($"Processing grid row: {entry.UnitName}, {entry.CurrentMonth}/{entry.CurrentYear}, {entry.Function}");
+            WaitBeforeEntry("Starting row entry");
             WaitForManualAlertToClose(cancellationToken);
             SelectPageContext(entry.UnitName, entry.CurrentYear, entry.CurrentMonth);
-            FillFunctionRow(entry);
+            if (FillFunctionRow(entry))
+            {
+                ClickSaveButtonIfConfigured();
+            }
         }
 
-        _log("Upload completed. Review the browser page and save/submit from the website if required.");
+        _log("Upload completed. Configured save button was clicked after each filled row.");
     }
 
     private void SelectPageContext(string unitName, int year, int month)
     {
-        ClickCancelIfSelectionControlsAreDisabled();
+        EnableSelectionControls();
 
         var monthAbbreviation = CultureInfo.InvariantCulture.DateTimeFormat.GetAbbreviatedMonthName(month);
         SetFieldValue(
@@ -87,52 +93,42 @@ public sealed class ManpowerSeleniumUploader : IDisposable
     }
 
 
-    private void ClickCancelIfSelectionControlsAreDisabled()
+    private void EnableSelectionControls()
     {
-        if (string.IsNullOrWhiteSpace(_options.CancelButtonSelector) || !IsSelectionControlDisabled())
+        EnableField(_options.MonthSelector);
+        EnableField(_options.YearSelector);
+        EnableField(_options.UnitSelector);
+    }
+
+
+    private void ClickSaveButtonIfConfigured()
+    {
+        if (string.IsNullOrWhiteSpace(_options.SaveButtonSelector))
         {
             return;
         }
 
-        _log("Unit/year/month selection is disabled. Clicking cancel before changing dropdowns.");
-        ClickByCss(_options.CancelButtonSelector);
+        WaitBeforeEntry("Clicking save button");
+        _log("Clicking save button after entering manpower cost values.");
+        ClickByCss(_options.SaveButtonSelector);
         WaitForManualAlertToClose();
-        Thread.Sleep(500);
+        Thread.Sleep(750);
     }
 
-    private bool IsSelectionControlDisabled()
-    {
-        return IsFieldDisabled(_options.UnitSelector)
-            || IsFieldDisabled(_options.YearSelector)
-            || IsFieldDisabled(_options.MonthSelector);
-    }
-
-    private bool IsFieldDisabled(string cssSelector)
-    {
-        if (string.IsNullOrWhiteSpace(cssSelector))
-        {
-            return false;
-        }
-
-        var element = FindByCss(cssSelector);
-        return !element.Enabled
-            || element.GetDomAttribute("disabled") != null
-            || element.GetDomAttribute("readonly") != null;
-    }
-
-    private void FillFunctionRow(ManpowerEntry entry)
+    private bool FillFunctionRow(ManpowerEntry entry)
     {
         var row = FindFunctionRow(entry.Function);
         var inputs = row.FindElements(By.CssSelector("input, textarea")).Where(x => x.Displayed && x.Enabled).ToList();
         if (inputs.Count < 2)
         {
             _log($"Skipped {entry.UnitName} / {entry.Function}: row does not contain two editable amount boxes.");
-            return;
+            return false;
         }
 
         SetElementValue(inputs[0], entry.ActualMpCost);
         SetElementValue(inputs[1], entry.ActualMpCostLeasing);
         _log($"Filled {entry.UnitName} / {entry.Function}: internal={entry.ActualMpCost}, leasing={entry.ActualMpCostLeasing}");
+        return true;
     }
 
     private IWebElement FindFunctionRow(string functionName)
@@ -169,6 +165,8 @@ public sealed class ManpowerSeleniumUploader : IDisposable
         {
             try
             {
+                EnableField(cssSelector);
+                WaitBeforeEntry($"Entering value '{value}'");
                 var element = FindByCss(cssSelector);
                 if (element.TagName.Equals("select", StringComparison.OrdinalIgnoreCase))
                 {
@@ -198,7 +196,7 @@ public sealed class ManpowerSeleniumUploader : IDisposable
                 select.SelectByValue(value);
                 return;
             }
-            catch (NoSuchElementException)
+            catch (Exception ex) when (ex is NoSuchElementException or InvalidOperationException)
             {
                 // Try visible text next.
             }
@@ -208,7 +206,7 @@ public sealed class ManpowerSeleniumUploader : IDisposable
                 select.SelectByText(value);
                 return;
             }
-            catch (NoSuchElementException)
+            catch (Exception ex) when (ex is NoSuchElementException or InvalidOperationException)
             {
                 // Try the next candidate.
             }
@@ -224,6 +222,8 @@ public sealed class ManpowerSeleniumUploader : IDisposable
             try
             {
                 WaitForManualAlertToClose();
+                EnableElement(element);
+                WaitBeforeEntry("Entering manpower cost");
                 element.Click();
                 element.SendKeys(SeleniumKeys.Control + "a");
                 element.SendKeys(value.ToString("0.##", CultureInfo.InvariantCulture));
@@ -235,6 +235,75 @@ public sealed class ManpowerSeleniumUploader : IDisposable
                 WaitForManualAlertToClose();
             }
         }
+    }
+
+
+    private void EnableField(string cssSelector)
+    {
+        if (string.IsNullOrWhiteSpace(cssSelector) || _driver is not IJavaScriptExecutor js)
+        {
+            return;
+        }
+
+        while (true)
+        {
+            try
+            {
+                WaitForManualAlertToClose();
+                js.ExecuteScript(
+                    "const element = document.querySelector(arguments[0]);"
+                    + "if (!element) return;"
+                    + "element.disabled = false;"
+                    + "element.readOnly = false;"
+                    + "element.removeAttribute('disabled');"
+                    + "element.removeAttribute('readonly');"
+                    + "element.classList.remove('disabled');"
+                    + "if (element.tagName && element.tagName.toLowerCase() === 'select') {"
+                    + "  Array.from(element.options).forEach(option => { option.disabled = false; option.removeAttribute('disabled'); });"
+                    + "}"
+                    + "element.dispatchEvent(new Event('change', { bubbles: true }));",
+                    cssSelector);
+                return;
+            }
+            catch (WebDriverException ex) when (IsUnexpectedAlertOpen(ex))
+            {
+                WaitForManualAlertToClose();
+            }
+        }
+    }
+
+    private void EnableElement(IWebElement element)
+    {
+        if (_driver is not IJavaScriptExecutor js)
+        {
+            return;
+        }
+
+        while (true)
+        {
+            try
+            {
+                WaitForManualAlertToClose();
+                js.ExecuteScript(
+                    "arguments[0].disabled = false;"
+                    + "arguments[0].readOnly = false;"
+                    + "arguments[0].removeAttribute('disabled');"
+                    + "arguments[0].removeAttribute('readonly');"
+                    + "arguments[0].classList.remove('disabled');",
+                    element);
+                return;
+            }
+            catch (WebDriverException ex) when (IsUnexpectedAlertOpen(ex))
+            {
+                WaitForManualAlertToClose();
+            }
+        }
+    }
+
+    private void WaitBeforeEntry(string action)
+    {
+        _log($"{action}. Waiting {EntryDelayMilliseconds / 1000} seconds before continuing.");
+        Thread.Sleep(EntryDelayMilliseconds);
     }
 
     private void ClickByCss(string cssSelector)
