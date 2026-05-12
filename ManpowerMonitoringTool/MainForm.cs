@@ -15,7 +15,7 @@ public sealed class MainForm : Form
     private readonly TextBox _monthSelectorTextBox = new() { Anchor = AnchorStyles.Left | AnchorStyles.Right, Text = "#SelectedMonth" };
     private readonly TextBox _searchSelectorTextBox = new() { Anchor = AnchorStyles.Left | AnchorStyles.Right, Text = "#btnSearch" };
     private readonly TextBox _cancelSelectorTextBox = new() { Anchor = AnchorStyles.Left | AnchorStyles.Right, Text = "#revert_cancel" };
-    private readonly TextBox _tableSelectorTextBox = new() { Anchor = AnchorStyles.Left | AnchorStyles.Right, Text = "#MANPOWERCOST_NETSALES_TAB2" };
+    private readonly TextBox _tableSelectorTextBox = new() { Anchor = AnchorStyles.Left | AnchorStyles.Right, Text = "#MANPOWERCOST_FUNCTIONWISE_TAB2" };
     private readonly CheckBox _keepBrowserOpenCheckBox = new() { Text = "Keep browser open after upload", Checked = true, AutoSize = true };
     private readonly DataGridView _grid = new() { Dock = DockStyle.Fill, AutoGenerateColumns = true, ReadOnly = true, AllowUserToAddRows = false };
     private readonly TextBox _logTextBox = new() { Dock = DockStyle.Fill, Multiline = true, ScrollBars = ScrollBars.Vertical, ReadOnly = true };

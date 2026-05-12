@@ -44,7 +44,7 @@ The default selector values are examples only:
 | Month selector | `#SelectedMonth` | Month input/select control. The tool writes the first three month characters, for example `Apr`, `May`, or `Jun`. |
 | Go/Search button | `#btnSearch` | Button clicked automatically after unit/month/year are set. Leave blank if search is automatic. |
 | Cancel button | `#revert_cancel` | Button clicked first when the unit/year/month controls are disabled. Leave blank if the page does not lock these fields. |
-| Cost table | `#MANPOWERCOST_NETSALES_TAB2` | Manpower cost table containing rows such as Finance, Quality, Manufacturing, and Maintenance. |
+| Cost table | `#MANPOWERCOST_FUNCTIONWISE_TAB2` | Manpower cost table containing rows such as Finance, Quality, Manufacturing, and Maintenance. |
 
 The automation matches the Excel `Function` value to the first cell of each table row after removing spaces, slash characters, and punctuation. This handles labels like `Manufacturing/  Operations` and `Manufacturing/ Operations`.
 
