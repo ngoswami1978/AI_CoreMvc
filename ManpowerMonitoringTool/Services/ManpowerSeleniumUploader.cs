@@ -70,11 +70,12 @@ public sealed class ManpowerSeleniumUploader : IDisposable
     {
         SetFieldValue(_options.UnitSelector, unitName);
         SetFieldValue(_options.YearSelector, year.ToString(CultureInfo.InvariantCulture));
+        var monthAbbreviation = CultureInfo.InvariantCulture.DateTimeFormat.GetAbbreviatedMonthName(month);
         SetFieldValue(
             _options.MonthSelector,
-            month.ToString(CultureInfo.InvariantCulture),
+            monthAbbreviation,
             CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(month),
-            CultureInfo.InvariantCulture.DateTimeFormat.GetAbbreviatedMonthName(month));
+            month.ToString(CultureInfo.InvariantCulture));
 
         if (!string.IsNullOrWhiteSpace(_options.SearchButtonSelector))
         {
