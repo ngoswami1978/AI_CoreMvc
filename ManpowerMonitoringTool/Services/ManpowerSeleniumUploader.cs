@@ -136,7 +136,7 @@ public sealed class ManpowerSeleniumUploader : IDisposable
 
         element.Clear();
         element.SendKeys(value);
-        element.SendKeys(Keys.Tab);
+        element.SendKeys(OpenQA.Selenium.Keys.Tab);
     }
 
     private static void TrySelect(SelectElement select, IReadOnlyList<string> values)
@@ -170,9 +170,9 @@ public sealed class ManpowerSeleniumUploader : IDisposable
     private void SetElementValue(IWebElement element, decimal value)
     {
         element.Click();
-        element.SendKeys(Keys.Control + "a");
+        element.SendKeys(OpenQA.Selenium.Keys.Control + "a");
         element.SendKeys(value.ToString("0.##", CultureInfo.InvariantCulture));
-        element.SendKeys(Keys.Tab);
+        element.SendKeys(OpenQA.Selenium.Keys.Tab);
     }
 
     private IWebElement FindByCss(string cssSelector)
