@@ -512,6 +512,7 @@ public sealed class ManpowerSeleniumUploader : IDisposable
             || exception.Message.Contains("Other element would receive the click", StringComparison.OrdinalIgnoreCase);
     }
 
+
     private static string Normalize(string value)
     {
         return Regex.Replace(value, "[^a-zA-Z0-9]", string.Empty).ToLowerInvariant();
