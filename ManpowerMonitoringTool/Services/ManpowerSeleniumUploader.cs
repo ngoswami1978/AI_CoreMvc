@@ -60,7 +60,7 @@ public sealed class ManpowerSeleniumUploader : IDisposable
             var firstEntry = group[0];
             _log($"Processing {group.Count} grid row(s) for {firstEntry.UnitName}, {firstEntry.CurrentMonth}/{firstEntry.CurrentYear}");
             WaitBeforeEntry("Starting unit/month/year group entry");
-            WaitForManualAlertToClose(cancellationToken);
+            AcceptApplicationAlertIfPresent(cancellationToken);
             SelectPageContext(firstEntry.UnitName, firstEntry.CurrentYear, firstEntry.CurrentMonth);
 
             var filledAnyRow = false;
@@ -125,7 +125,7 @@ public sealed class ManpowerSeleniumUploader : IDisposable
         if (!string.IsNullOrWhiteSpace(_options.SearchButtonSelector))
         {
             ClickByCss(_options.SearchButtonSelector);
-            WaitForManualAlertToClose();
+            AcceptApplicationAlertIfPresent();
             Thread.Sleep(750);
         }
     }
@@ -149,7 +149,7 @@ public sealed class ManpowerSeleniumUploader : IDisposable
         WaitBeforeEntry("Clicking save button");
         _log("Clicking save button after entering manpower cost values.");
         ClickByCss(_options.SaveButtonSelector);
-        WaitForManualAlertToClose();
+        AcceptApplicationAlertIfPresent();
         Thread.Sleep(750);
     }
 
@@ -173,7 +173,7 @@ public sealed class ManpowerSeleniumUploader : IDisposable
     {
         var expected = Normalize(functionName);
         var table = FindByCss(_options.TableSelector);
-        WaitForManualAlertToClose();
+        AcceptApplicationAlertIfPresent();
         var rows = table.FindElements(By.CssSelector("tr"));
         foreach (var row in rows)
         {
@@ -220,7 +220,7 @@ public sealed class ManpowerSeleniumUploader : IDisposable
             }
             catch (WebDriverException ex) when (IsUnexpectedAlertOpen(ex))
             {
-                WaitForManualAlertToClose();
+                AcceptApplicationAlertIfPresent();
             }
         }
     }
@@ -263,7 +263,7 @@ public sealed class ManpowerSeleniumUploader : IDisposable
             try
             {
                 attempts++;
-                WaitForManualAlertToClose();
+                AcceptApplicationAlertIfPresent();
                 EnableElement(element);
                 ScrollElementIntoTypingPosition(element);
                 WaitBeforeEntry("Entering manpower cost");
@@ -276,7 +276,7 @@ public sealed class ManpowerSeleniumUploader : IDisposable
             }
             catch (WebDriverException ex) when (IsUnexpectedAlertOpen(ex))
             {
-                WaitForManualAlertToClose();
+                AcceptApplicationAlertIfPresent();
             }
             catch (WebDriverException ex) when (IsClickOrInteractIssue(ex))
             {
@@ -353,7 +353,7 @@ public sealed class ManpowerSeleniumUploader : IDisposable
         {
             try
             {
-                WaitForManualAlertToClose();
+                AcceptApplicationAlertIfPresent();
                 js.ExecuteScript(
                     "const element = document.querySelector(arguments[0]);"
                     + "if (!element) return;"
@@ -371,7 +371,7 @@ public sealed class ManpowerSeleniumUploader : IDisposable
             }
             catch (WebDriverException ex) when (IsUnexpectedAlertOpen(ex))
             {
-                WaitForManualAlertToClose();
+                AcceptApplicationAlertIfPresent();
             }
         }
     }
@@ -387,7 +387,7 @@ public sealed class ManpowerSeleniumUploader : IDisposable
         {
             try
             {
-                WaitForManualAlertToClose();
+                AcceptApplicationAlertIfPresent();
                 js.ExecuteScript(
                     "arguments[0].disabled = false;"
                     + "arguments[0].readOnly = false;"
@@ -399,7 +399,7 @@ public sealed class ManpowerSeleniumUploader : IDisposable
             }
             catch (WebDriverException ex) when (IsUnexpectedAlertOpen(ex))
             {
-                WaitForManualAlertToClose();
+                AcceptApplicationAlertIfPresent();
             }
         }
     }
@@ -421,7 +421,7 @@ public sealed class ManpowerSeleniumUploader : IDisposable
             }
             catch (WebDriverException ex) when (IsUnexpectedAlertOpen(ex))
             {
-                WaitForManualAlertToClose();
+                AcceptApplicationAlertIfPresent();
             }
         }
     }
@@ -435,7 +435,7 @@ public sealed class ManpowerSeleniumUploader : IDisposable
 
         while (true)
         {
-            WaitForManualAlertToClose();
+            AcceptApplicationAlertIfPresent();
 
             try
             {
@@ -447,19 +447,18 @@ public sealed class ManpowerSeleniumUploader : IDisposable
             }
             catch (WebDriverException ex) when (IsUnexpectedAlertOpen(ex))
             {
-                WaitForManualAlertToClose();
+                AcceptApplicationAlertIfPresent();
             }
         }
     }
 
-    private void WaitForManualAlertToClose(CancellationToken cancellationToken = default)
+    private void AcceptApplicationAlertIfPresent(CancellationToken cancellationToken = default)
     {
         if (_driver == null)
         {
             return;
         }
 
-        var logged = false;
         while (true)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -467,32 +466,19 @@ public sealed class ManpowerSeleniumUploader : IDisposable
             try
             {
                 var alert = _driver.SwitchTo().Alert();
-                if (!logged)
-                {
-                    _log($"Browser alert is open: '{alert.Text}'. Please close it manually to continue.");
-                    logged = true;
-                }
-
-                Thread.Sleep(1000);
+                var text = alert.Text;
+                _log($"Application alert detected: '{text}'. Accepting it automatically.");
+                alert.Accept();
+                Thread.Sleep(500);
             }
             catch (NoAlertPresentException)
             {
-                if (logged)
-                {
-                    _log("Browser alert closed. Continuing automation.");
-                }
-
                 return;
             }
             catch (WebDriverException ex) when (IsUnexpectedAlertOpen(ex))
             {
-                if (!logged)
-                {
-                    _log("Browser alert is open. Please close it manually to continue.");
-                    logged = true;
-                }
-
-                Thread.Sleep(1000);
+                _log("Application alert is open. Retrying automatic accept.");
+                Thread.Sleep(500);
             }
         }
     }
@@ -511,7 +497,6 @@ public sealed class ManpowerSeleniumUploader : IDisposable
             || exception.Message.Contains("not clickable", StringComparison.OrdinalIgnoreCase)
             || exception.Message.Contains("Other element would receive the click", StringComparison.OrdinalIgnoreCase);
     }
-
 
     private static string Normalize(string value)
     {

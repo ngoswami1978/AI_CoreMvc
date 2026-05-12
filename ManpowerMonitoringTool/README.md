@@ -50,4 +50,4 @@ Before selecting month/year/unit values, the automation removes disabled/read-on
 
 ## Important safety note
 
-The tool scrolls each cost input into a safe typing position, types values slowly without using a mouse click, and clicks the configured Save button (`#convert_table_newid`) after each consecutive UnitName/year/month group. If the browser shows an alert such as `Want to Clear Data?`, the automation waits until you manually press the alert button, then continues. Review the site after upload to confirm all rows were saved correctly.
+The tool scrolls each cost input into a safe typing position, types values slowly without using a mouse click, and clicks the configured Save button (`#convert_table_newid`) after each consecutive UnitName/year/month group. If the browser shows an application alert or confirmation such as `Want to Clear Data?`, the automation accepts it automatically and continues. Review the site after upload to confirm all rows were saved correctly.
