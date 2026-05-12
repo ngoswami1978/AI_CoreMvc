@@ -466,6 +466,7 @@ public sealed class ManpowerSeleniumUploader : IDisposable
             || exception.Message.Contains("user prompt", StringComparison.OrdinalIgnoreCase);
     }
 
+<<<<<<< codex/develop-monitoring-tool-with-selenium-5x4v5h
     private static bool IsClickOrInteractIssue(WebDriverException exception)
     {
         return exception.Message.Contains("element click intercepted", StringComparison.OrdinalIgnoreCase)
@@ -474,6 +475,8 @@ public sealed class ManpowerSeleniumUploader : IDisposable
             || exception.Message.Contains("Other element would receive the click", StringComparison.OrdinalIgnoreCase);
     }
 
+=======
+>>>>>>> main
     private static string Normalize(string value)
     {
         return Regex.Replace(value, "[^a-zA-Z0-9]", string.Empty).ToLowerInvariant();
