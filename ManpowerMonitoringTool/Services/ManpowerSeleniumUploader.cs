@@ -4,6 +4,7 @@ using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Support.UI;
 using System.Globalization;
 using System.Text.RegularExpressions;
+using SeleniumKeys = OpenQA.Selenium.Keys;
 
 namespace ManpowerMonitoringTool.Services;
 
@@ -69,11 +70,12 @@ public sealed class ManpowerSeleniumUploader : IDisposable
     {
         SetFieldValue(_options.UnitSelector, unitName);
         SetFieldValue(_options.YearSelector, year.ToString(CultureInfo.InvariantCulture));
+        var monthAbbreviation = CultureInfo.InvariantCulture.DateTimeFormat.GetAbbreviatedMonthName(month);
         SetFieldValue(
             _options.MonthSelector,
-            month.ToString(CultureInfo.InvariantCulture),
+            monthAbbreviation,
             CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(month),
-            CultureInfo.InvariantCulture.DateTimeFormat.GetAbbreviatedMonthName(month));
+            month.ToString(CultureInfo.InvariantCulture));
 
         if (!string.IsNullOrWhiteSpace(_options.SearchButtonSelector))
         {
@@ -136,7 +138,7 @@ public sealed class ManpowerSeleniumUploader : IDisposable
 
         element.Clear();
         element.SendKeys(value);
-        element.SendKeys(OpenQA.Selenium.Keys.Tab);
+        element.SendKeys(SeleniumKeys.Tab);
     }
 
     private static void TrySelect(SelectElement select, IReadOnlyList<string> values)
@@ -170,9 +172,9 @@ public sealed class ManpowerSeleniumUploader : IDisposable
     private void SetElementValue(IWebElement element, decimal value)
     {
         element.Click();
-        element.SendKeys(OpenQA.Selenium.Keys.Control + "a");
+        element.SendKeys(SeleniumKeys.Control + "a");
         element.SendKeys(value.ToString("0.##", CultureInfo.InvariantCulture));
-        element.SendKeys(OpenQA.Selenium.Keys.Tab);
+        element.SendKeys(SeleniumKeys.Tab);
     }
 
     private IWebElement FindByCss(string cssSelector)
