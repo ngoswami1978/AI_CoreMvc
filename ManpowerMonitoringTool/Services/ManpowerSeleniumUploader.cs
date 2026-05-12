@@ -217,16 +217,22 @@ public sealed class ManpowerSeleniumUploader : IDisposable
 
     private void SetElementValue(IWebElement element, decimal value)
     {
+        var text = value.ToString("0.##", CultureInfo.InvariantCulture);
+        var attempts = 0;
+
         while (true)
         {
             try
             {
+                attempts++;
                 WaitForManualAlertToClose();
                 EnableElement(element);
+                ScrollElementIntoTypingPosition(element);
                 WaitBeforeEntry("Entering manpower cost");
-                element.Click();
+                FocusElementForTyping(element);
                 element.SendKeys(SeleniumKeys.Control + "a");
-                element.SendKeys(value.ToString("0.##", CultureInfo.InvariantCulture));
+                element.SendKeys(SeleniumKeys.Backspace);
+                TypeSlowly(element, text);
                 element.SendKeys(SeleniumKeys.Tab);
                 return;
             }
@@ -234,7 +240,67 @@ public sealed class ManpowerSeleniumUploader : IDisposable
             {
                 WaitForManualAlertToClose();
             }
+            catch (WebDriverException ex) when (IsClickOrInteractIssue(ex))
+            {
+                if (attempts < 2)
+                {
+                    _log("Typing was blocked by page layout. Repositioning the field and trying again.");
+                    Thread.Sleep(500);
+                    continue;
+                }
+
+                _log($"Typing was blocked by the page ({ex.Message.Split(Environment.NewLine)[0]}). Setting the value directly.");
+                SetElementValueWithScript(element, text);
+                return;
+            }
         }
+    }
+
+    private void ScrollElementIntoTypingPosition(IWebElement element)
+    {
+        if (_driver is not IJavaScriptExecutor js)
+        {
+            return;
+        }
+
+        js.ExecuteScript(
+            "arguments[0].scrollIntoView({ block: 'center', inline: 'nearest' });"
+            + "window.scrollBy(0, -140);",
+            element);
+        Thread.Sleep(400);
+    }
+
+    private void FocusElementForTyping(IWebElement element)
+    {
+        if (_driver is IJavaScriptExecutor js)
+        {
+            js.ExecuteScript("arguments[0].focus({ preventScroll: true });", element);
+        }
+    }
+
+    private static void TypeSlowly(IWebElement element, string text)
+    {
+        foreach (var character in text)
+        {
+            element.SendKeys(character.ToString());
+            Thread.Sleep(150);
+        }
+    }
+
+    private void SetElementValueWithScript(IWebElement element, string value)
+    {
+        if (_driver is not IJavaScriptExecutor js)
+        {
+            throw new InvalidOperationException("JavaScript executor is required to set a blocked field value.");
+        }
+
+        js.ExecuteScript(
+            "arguments[0].value = arguments[1];"
+            + "arguments[0].dispatchEvent(new Event('input', { bubbles: true }));"
+            + "arguments[0].dispatchEvent(new Event('change', { bubbles: true }));"
+            + "arguments[0].blur();",
+            element,
+            value);
     }
 
 
@@ -400,6 +466,17 @@ public sealed class ManpowerSeleniumUploader : IDisposable
             || exception.Message.Contains("user prompt", StringComparison.OrdinalIgnoreCase);
     }
 
+<<<<<<< codex/develop-monitoring-tool-with-selenium-5x4v5h
+    private static bool IsClickOrInteractIssue(WebDriverException exception)
+    {
+        return exception.Message.Contains("element click intercepted", StringComparison.OrdinalIgnoreCase)
+            || exception.Message.Contains("element not interactable", StringComparison.OrdinalIgnoreCase)
+            || exception.Message.Contains("not clickable", StringComparison.OrdinalIgnoreCase)
+            || exception.Message.Contains("Other element would receive the click", StringComparison.OrdinalIgnoreCase);
+    }
+
+=======
+>>>>>>> main
     private static string Normalize(string value)
     {
         return Regex.Replace(value, "[^a-zA-Z0-9]", string.Empty).ToLowerInvariant();

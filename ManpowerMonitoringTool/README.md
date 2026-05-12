@@ -30,7 +30,7 @@ Rows without `UnitName` or `Function` are skipped.
 5. Choose the Excel file and click **Load Preview**.
 6. Enter the website URL and CSS selectors for the unit, year, month, Go/Search button, Save button, and manpower cost table.
 7. Click **Start Browser**. Log in manually if your website requires login.
-8. Click **Run Upload**. The tool highlights each preview-grid row, waits 2 seconds before each entry action, enables any disabled month/year/unit dropdowns, selects that row's month/year/UnitName, clicks the Go/Search button, enters the manpower cost values, then clicks the Save button.
+8. Click **Run Upload**. The tool highlights each preview-grid row, waits 2 seconds before each entry action, scrolls and types cost values slowly, enables any disabled month/year/unit dropdowns, selects that row's month/year/UnitName, clicks the Go/Search button, enters the manpower cost values, then clicks the Save button.
 
 ## Selector setup
 
@@ -50,4 +50,4 @@ Before selecting month/year/unit values, the automation removes disabled/read-on
 
 ## Important safety note
 
-The tool fills values in the browser and clicks the configured Save button (`#convert_table_newid`) after each row. If the browser shows an alert such as `Want to Clear Data?`, the automation waits until you manually press the alert button, then continues. Review the site after upload to confirm all rows were saved correctly.
+The tool scrolls each cost input into a safe typing position, types values slowly without using a mouse click, and clicks the configured Save button (`#convert_table_newid`) after each row. If the browser shows an alert such as `Want to Clear Data?`, the automation waits until you manually press the alert button, then continues. Review the site after upload to confirm all rows were saved correctly.
