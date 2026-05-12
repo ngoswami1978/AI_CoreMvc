@@ -68,6 +68,8 @@ public sealed class ManpowerSeleniumUploader : IDisposable
 
     private void SelectPageContext(string unitName, int year, int month)
     {
+        ClickCancelIfSelectionControlsAreDisabled();
+
         SetFieldValue(_options.UnitSelector, unitName);
         SetFieldValue(_options.YearSelector, year.ToString(CultureInfo.InvariantCulture));
         var monthAbbreviation = CultureInfo.InvariantCulture.DateTimeFormat.GetAbbreviatedMonthName(month);
@@ -82,6 +84,39 @@ public sealed class ManpowerSeleniumUploader : IDisposable
             FindByCss(_options.SearchButtonSelector).Click();
             Thread.Sleep(750);
         }
+    }
+
+
+    private void ClickCancelIfSelectionControlsAreDisabled()
+    {
+        if (string.IsNullOrWhiteSpace(_options.CancelButtonSelector) || !IsSelectionControlDisabled())
+        {
+            return;
+        }
+
+        _log("Unit/year/month selection is disabled. Clicking cancel before changing dropdowns.");
+        FindByCss(_options.CancelButtonSelector).Click();
+        Thread.Sleep(500);
+    }
+
+    private bool IsSelectionControlDisabled()
+    {
+        return IsFieldDisabled(_options.UnitSelector)
+            || IsFieldDisabled(_options.YearSelector)
+            || IsFieldDisabled(_options.MonthSelector);
+    }
+
+    private bool IsFieldDisabled(string cssSelector)
+    {
+        if (string.IsNullOrWhiteSpace(cssSelector))
+        {
+            return false;
+        }
+
+        var element = FindByCss(cssSelector);
+        return !element.Enabled
+            || element.GetDomAttribute("disabled") != null
+            || element.GetDomAttribute("readonly") != null;
     }
 
     private void FillFunctionRow(ManpowerEntry entry)

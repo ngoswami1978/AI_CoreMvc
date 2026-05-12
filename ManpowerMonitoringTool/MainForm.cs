@@ -14,6 +14,7 @@ public sealed class MainForm : Form
     private readonly TextBox _yearSelectorTextBox = new() { Anchor = AnchorStyles.Left | AnchorStyles.Right, Text = "#SelectedYear" };
     private readonly TextBox _monthSelectorTextBox = new() { Anchor = AnchorStyles.Left | AnchorStyles.Right, Text = "#SelectedMonth" };
     private readonly TextBox _searchSelectorTextBox = new() { Anchor = AnchorStyles.Left | AnchorStyles.Right, Text = "#btnSearch" };
+    private readonly TextBox _cancelSelectorTextBox = new() { Anchor = AnchorStyles.Left | AnchorStyles.Right, Text = "#revert_cancel" };
     private readonly TextBox _tableSelectorTextBox = new() { Anchor = AnchorStyles.Left | AnchorStyles.Right, Text = "#MANPOWERCOST_NETSALES_TAB2" };
     private readonly CheckBox _keepBrowserOpenCheckBox = new() { Text = "Keep browser open after upload", Checked = true, AutoSize = true };
     private readonly DataGridView _grid = new() { Dock = DockStyle.Fill, AutoGenerateColumns = true, ReadOnly = true, AllowUserToAddRows = false };
@@ -83,6 +84,7 @@ public sealed class MainForm : Form
         AddField(panel, "Month selector", _monthSelectorTextBox, 0, 1);
         AddField(panel, "Search button", _searchSelectorTextBox, 2, 1);
         AddField(panel, "Cost table", _tableSelectorTextBox, 4, 1);
+        AddField(panel, "Cancel button", _cancelSelectorTextBox, 0, 2);
 
         var startButton = new Button { Text = "Start Browser", AutoSize = true };
         startButton.Click += (_, _) => StartBrowser();
@@ -95,7 +97,7 @@ public sealed class MainForm : Form
         actions.Controls.Add(_runButton);
         actions.Controls.Add(stopButton);
         actions.Controls.Add(_keepBrowserOpenCheckBox);
-        panel.Controls.Add(actions, 0, 2);
+        panel.Controls.Add(actions, 0, 3);
         panel.SetColumnSpan(actions, 6);
         return panel;
     }
@@ -197,6 +199,7 @@ public sealed class MainForm : Form
             YearSelector = _yearSelectorTextBox.Text.Trim(),
             MonthSelector = _monthSelectorTextBox.Text.Trim(),
             SearchButtonSelector = _searchSelectorTextBox.Text.Trim(),
+            CancelButtonSelector = _cancelSelectorTextBox.Text.Trim(),
             TableSelector = _tableSelectorTextBox.Text.Trim(),
             KeepBrowserOpen = _keepBrowserOpenCheckBox.Checked
         };
