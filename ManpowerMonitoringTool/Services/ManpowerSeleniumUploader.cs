@@ -54,6 +54,7 @@ public sealed class ManpowerSeleniumUploader : IDisposable
         {
             cancellationToken.ThrowIfCancellationRequested();
             _log($"Opening unit {group.Key.UnitName}, {group.Key.CurrentMonth}/{group.Key.CurrentYear}");
+            WaitForManualAlertToClose(cancellationToken);
             SelectPageContext(group.Key.UnitName, group.Key.CurrentYear, group.Key.CurrentMonth);
 
             foreach (var entry in group)
@@ -81,7 +82,8 @@ public sealed class ManpowerSeleniumUploader : IDisposable
 
         if (!string.IsNullOrWhiteSpace(_options.SearchButtonSelector))
         {
-            FindByCss(_options.SearchButtonSelector).Click();
+            ClickByCss(_options.SearchButtonSelector);
+            WaitForManualAlertToClose();
             Thread.Sleep(750);
         }
     }
@@ -95,7 +97,8 @@ public sealed class ManpowerSeleniumUploader : IDisposable
         }
 
         _log("Unit/year/month selection is disabled. Clicking cancel before changing dropdowns.");
-        FindByCss(_options.CancelButtonSelector).Click();
+        ClickByCss(_options.CancelButtonSelector);
+        WaitForManualAlertToClose();
         Thread.Sleep(500);
     }
 
@@ -138,6 +141,7 @@ public sealed class ManpowerSeleniumUploader : IDisposable
     {
         var expected = Normalize(functionName);
         var table = FindByCss(_options.TableSelector);
+        WaitForManualAlertToClose();
         var rows = table.FindElements(By.CssSelector("tr"));
         foreach (var row in rows)
         {
@@ -163,17 +167,28 @@ public sealed class ManpowerSeleniumUploader : IDisposable
             return;
         }
 
-        var element = FindByCss(cssSelector);
-        if (element.TagName.Equals("select", StringComparison.OrdinalIgnoreCase))
+        while (true)
         {
-            var select = new SelectElement(element);
-            TrySelect(select, [value, .. alternateSelectTexts]);
-            return;
-        }
+            try
+            {
+                var element = FindByCss(cssSelector);
+                if (element.TagName.Equals("select", StringComparison.OrdinalIgnoreCase))
+                {
+                    var select = new SelectElement(element);
+                    TrySelect(select, [value, .. alternateSelectTexts]);
+                    return;
+                }
 
-        element.Clear();
-        element.SendKeys(value);
-        element.SendKeys(SeleniumKeys.Tab);
+                element.Clear();
+                element.SendKeys(value);
+                element.SendKeys(SeleniumKeys.Tab);
+                return;
+            }
+            catch (WebDriverException ex) when (IsUnexpectedAlertOpen(ex))
+            {
+                WaitForManualAlertToClose();
+            }
+        }
     }
 
     private static void TrySelect(SelectElement select, IReadOnlyList<string> values)
@@ -206,10 +221,38 @@ public sealed class ManpowerSeleniumUploader : IDisposable
 
     private void SetElementValue(IWebElement element, decimal value)
     {
-        element.Click();
-        element.SendKeys(SeleniumKeys.Control + "a");
-        element.SendKeys(value.ToString("0.##", CultureInfo.InvariantCulture));
-        element.SendKeys(SeleniumKeys.Tab);
+        while (true)
+        {
+            try
+            {
+                WaitForManualAlertToClose();
+                element.Click();
+                element.SendKeys(SeleniumKeys.Control + "a");
+                element.SendKeys(value.ToString("0.##", CultureInfo.InvariantCulture));
+                element.SendKeys(SeleniumKeys.Tab);
+                return;
+            }
+            catch (WebDriverException ex) when (IsUnexpectedAlertOpen(ex))
+            {
+                WaitForManualAlertToClose();
+            }
+        }
+    }
+
+    private void ClickByCss(string cssSelector)
+    {
+        while (true)
+        {
+            try
+            {
+                FindByCss(cssSelector).Click();
+                return;
+            }
+            catch (WebDriverException ex) when (IsUnexpectedAlertOpen(ex))
+            {
+                WaitForManualAlertToClose();
+            }
+        }
     }
 
     private IWebElement FindByCss(string cssSelector)
@@ -219,11 +262,75 @@ public sealed class ManpowerSeleniumUploader : IDisposable
             throw new InvalidOperationException("Browser has not been started.");
         }
 
-        return _wait.Until(driver =>
+        while (true)
         {
-            var element = driver.FindElement(By.CssSelector(cssSelector));
-            return element.Displayed ? element : null;
-        });
+            WaitForManualAlertToClose();
+
+            try
+            {
+                return _wait.Until(driver =>
+                {
+                    var element = driver.FindElement(By.CssSelector(cssSelector));
+                    return element.Displayed ? element : null;
+                });
+            }
+            catch (WebDriverException ex) when (IsUnexpectedAlertOpen(ex))
+            {
+                WaitForManualAlertToClose();
+            }
+        }
+    }
+
+    private void WaitForManualAlertToClose(CancellationToken cancellationToken = default)
+    {
+        if (_driver == null)
+        {
+            return;
+        }
+
+        var logged = false;
+        while (true)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            try
+            {
+                var alert = _driver.SwitchTo().Alert();
+                if (!logged)
+                {
+                    _log($"Browser alert is open: '{alert.Text}'. Please close it manually to continue.");
+                    logged = true;
+                }
+
+                Thread.Sleep(1000);
+            }
+            catch (NoAlertPresentException)
+            {
+                if (logged)
+                {
+                    _log("Browser alert closed. Continuing automation.");
+                }
+
+                return;
+            }
+            catch (WebDriverException ex) when (IsUnexpectedAlertOpen(ex))
+            {
+                if (!logged)
+                {
+                    _log("Browser alert is open. Please close it manually to continue.");
+                    logged = true;
+                }
+
+                Thread.Sleep(1000);
+            }
+        }
+    }
+
+    private static bool IsUnexpectedAlertOpen(WebDriverException exception)
+    {
+        return exception.Message.Contains("unexpected alert open", StringComparison.OrdinalIgnoreCase)
+            || exception.Message.Contains("modal dialog", StringComparison.OrdinalIgnoreCase)
+            || exception.Message.Contains("user prompt", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string Normalize(string value)

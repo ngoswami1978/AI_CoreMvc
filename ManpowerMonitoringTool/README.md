@@ -50,4 +50,4 @@ The automation matches the Excel `Function` value to the first cell of each tabl
 
 ## Important safety note
 
-The tool fills values in the browser but does not click the website's final Save/Submit button. Review the populated page before saving to production.
+The tool fills values in the browser but does not click the website's final Save/Submit button. If the browser shows an alert such as `Want to Clear Data?`, the automation waits until you manually press the alert button, then continues. Review the populated page before saving to production.
