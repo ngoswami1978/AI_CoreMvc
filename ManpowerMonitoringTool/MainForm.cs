@@ -10,9 +10,9 @@ public sealed class MainForm : Form
     private readonly BindingList<ManpowerEntry> _entries = [];
     private readonly TextBox _excelPathTextBox = new() { Anchor = AnchorStyles.Left | AnchorStyles.Right };
     private readonly TextBox _urlTextBox = new() { Anchor = AnchorStyles.Left | AnchorStyles.Right, Text = "http://localhost:5000" };
-    private readonly TextBox _unitSelectorTextBox = new() { Anchor = AnchorStyles.Left | AnchorStyles.Right, Text = "#unitName" };
-    private readonly TextBox _yearSelectorTextBox = new() { Anchor = AnchorStyles.Left | AnchorStyles.Right, Text = "#year" };
-    private readonly TextBox _monthSelectorTextBox = new() { Anchor = AnchorStyles.Left | AnchorStyles.Right, Text = "#month" };
+    private readonly TextBox _unitSelectorTextBox = new() { Anchor = AnchorStyles.Left | AnchorStyles.Right, Text = "#unit_list" };
+    private readonly TextBox _yearSelectorTextBox = new() { Anchor = AnchorStyles.Left | AnchorStyles.Right, Text = "#SelectedYear" };
+    private readonly TextBox _monthSelectorTextBox = new() { Anchor = AnchorStyles.Left | AnchorStyles.Right, Text = "#SelectedMonth" };
     private readonly TextBox _searchSelectorTextBox = new() { Anchor = AnchorStyles.Left | AnchorStyles.Right, Text = "#btnSearch" };
     private readonly TextBox _tableSelectorTextBox = new() { Anchor = AnchorStyles.Left | AnchorStyles.Right, Text = "table" };
     private readonly CheckBox _keepBrowserOpenCheckBox = new() { Text = "Keep browser open after upload", Checked = true, AutoSize = true };
