@@ -82,7 +82,7 @@ public sealed class MainForm : Form
         AddField(panel, "Unit selector", _unitSelectorTextBox, 2, 0);
         AddField(panel, "Year selector", _yearSelectorTextBox, 4, 0);
         AddField(panel, "Month selector", _monthSelectorTextBox, 0, 1);
-        AddField(panel, "Search button", _searchSelectorTextBox, 2, 1);
+        AddField(panel, "Go/Search button", _searchSelectorTextBox, 2, 1);
         AddField(panel, "Cost table", _tableSelectorTextBox, 4, 1);
         AddField(panel, "Cancel button", _cancelSelectorTextBox, 0, 2);
 
@@ -145,7 +145,7 @@ public sealed class MainForm : Form
     {
         try
         {
-            _uploader ??= new ManpowerSeleniumUploader(BuildOptions(), Log);
+            _uploader ??= new ManpowerSeleniumUploader(BuildOptions(), Log, HighlightGridEntry);
             _uploader.StartBrowser();
         }
         catch (Exception ex)
@@ -171,7 +171,7 @@ public sealed class MainForm : Form
         _cancellationTokenSource = new CancellationTokenSource();
         try
         {
-            _uploader ??= new ManpowerSeleniumUploader(BuildOptions(), Log);
+            _uploader ??= new ManpowerSeleniumUploader(BuildOptions(), Log, HighlightGridEntry);
             var rows = _entries.ToList();
             await Task.Run(() => _uploader.Upload(rows, _cancellationTokenSource.Token));
         }
@@ -187,6 +187,34 @@ public sealed class MainForm : Form
         finally
         {
             _runButton.Enabled = true;
+        }
+    }
+
+
+    private void HighlightGridEntry(ManpowerEntry entry)
+    {
+        if (InvokeRequired)
+        {
+            BeginInvoke(() => HighlightGridEntry(entry));
+            return;
+        }
+
+        foreach (DataGridViewRow row in _grid.Rows)
+        {
+            if (!ReferenceEquals(row.DataBoundItem, entry))
+            {
+                continue;
+            }
+
+            _grid.ClearSelection();
+            row.Selected = true;
+            if (row.Cells.Count > 0)
+            {
+                _grid.CurrentCell = row.Cells[0];
+            }
+
+            _grid.FirstDisplayedScrollingRowIndex = row.Index;
+            return;
         }
     }
 

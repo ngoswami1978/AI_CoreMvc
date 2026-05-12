@@ -12,13 +12,15 @@ public sealed class ManpowerSeleniumUploader : IDisposable
 {
     private readonly BrowserAutomationOptions _options;
     private readonly Action<string> _log;
+    private readonly Action<ManpowerEntry>? _selectGridEntry;
     private IWebDriver? _driver;
     private WebDriverWait? _wait;
 
-    public ManpowerSeleniumUploader(BrowserAutomationOptions options, Action<string> log)
+    public ManpowerSeleniumUploader(BrowserAutomationOptions options, Action<string> log, Action<ManpowerEntry>? selectGridEntry = null)
     {
         _options = options;
         _log = log;
+        _selectGridEntry = selectGridEntry;
     }
 
     public void StartBrowser()
@@ -50,18 +52,14 @@ public sealed class ManpowerSeleniumUploader : IDisposable
         }
 
         StartBrowser();
-        foreach (var group in entries.GroupBy(x => new { x.UnitName, x.CurrentYear, x.CurrentMonth }))
+        foreach (var entry in entries)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            _log($"Opening unit {group.Key.UnitName}, {group.Key.CurrentMonth}/{group.Key.CurrentYear}");
+            _selectGridEntry?.Invoke(entry);
+            _log($"Processing grid row: {entry.UnitName}, {entry.CurrentMonth}/{entry.CurrentYear}, {entry.Function}");
             WaitForManualAlertToClose(cancellationToken);
-            SelectPageContext(group.Key.UnitName, group.Key.CurrentYear, group.Key.CurrentMonth);
-
-            foreach (var entry in group)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                FillFunctionRow(entry);
-            }
+            SelectPageContext(entry.UnitName, entry.CurrentYear, entry.CurrentMonth);
+            FillFunctionRow(entry);
         }
 
         _log("Upload completed. Review the browser page and save/submit from the website if required.");
@@ -71,14 +69,14 @@ public sealed class ManpowerSeleniumUploader : IDisposable
     {
         ClickCancelIfSelectionControlsAreDisabled();
 
-        SetFieldValue(_options.UnitSelector, unitName);
-        SetFieldValue(_options.YearSelector, year.ToString(CultureInfo.InvariantCulture));
         var monthAbbreviation = CultureInfo.InvariantCulture.DateTimeFormat.GetAbbreviatedMonthName(month);
         SetFieldValue(
             _options.MonthSelector,
             monthAbbreviation,
             CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(month),
             month.ToString(CultureInfo.InvariantCulture));
+        SetFieldValue(_options.YearSelector, year.ToString(CultureInfo.InvariantCulture));
+        SetFieldValue(_options.UnitSelector, unitName);
 
         if (!string.IsNullOrWhiteSpace(_options.SearchButtonSelector))
         {
