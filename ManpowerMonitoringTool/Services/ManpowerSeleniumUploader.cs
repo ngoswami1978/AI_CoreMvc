@@ -75,11 +75,11 @@ public sealed class ManpowerSeleniumUploader : IDisposable
 
             if (filledAnyRow)
             {
-                ClickSaveButtonIfConfigured();
+                WaitForManualSaveClickIfConfigured(cancellationToken);
             }
         }
 
-        _log("Upload completed. Configured save button was clicked after each unit/month/year group.");
+        _log("Upload completed. Manual save was completed after each filled unit/month/year group.");
     }
     private static IEnumerable<IReadOnlyList<ManpowerEntry>> BuildConsecutiveContextGroups(IReadOnlyList<ManpowerEntry> entries)
     {
@@ -139,18 +139,67 @@ public sealed class ManpowerSeleniumUploader : IDisposable
     }
 
 
-    private void ClickSaveButtonIfConfigured()
+    private void WaitForManualSaveClickIfConfigured(CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(_options.SaveButtonSelector))
         {
             return;
         }
 
-        WaitBeforeEntry("Clicking save button");
-        _log("Clicking save button after entering manpower cost values.");
-        ClickByCss(_options.SaveButtonSelector);
-        AcceptApplicationAlertIfPresent();
-        Thread.Sleep(750);
+        HookManualSaveClickWatcher();
+        _log("Manpower cost values are filled. Please click the Save button manually in the browser to continue.");
+
+        while (true)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            AcceptApplicationAlertIfPresent(cancellationToken);
+
+            if (WasManualSaveClicked())
+            {
+                _log("Manual Save click detected. Continuing with the next group.");
+                ResetManualSaveClickWatcher();
+                AcceptApplicationAlertIfPresent(cancellationToken);
+                Thread.Sleep(750);
+                return;
+            }
+
+            Thread.Sleep(500);
+        }
+    }
+
+    private void HookManualSaveClickWatcher()
+    {
+        if (_driver is not IJavaScriptExecutor js)
+        {
+            return;
+        }
+
+        js.ExecuteScript(
+            "window.__manpowerSaveClicked = false;"
+            + "const button = document.querySelector(arguments[0]);"
+            + "if (button && !button.dataset.manpowerSaveWatcherAttached) {"
+            + "  button.addEventListener('click', function () { window.__manpowerSaveClicked = true; }, true);"
+            + "  button.dataset.manpowerSaveWatcherAttached = 'true';"
+            + "}",
+            _options.SaveButtonSelector);
+    }
+
+    private bool WasManualSaveClicked()
+    {
+        if (_driver is not IJavaScriptExecutor js)
+        {
+            return true;
+        }
+
+        return Convert.ToBoolean(js.ExecuteScript("return window.__manpowerSaveClicked === true;"));
+    }
+
+    private void ResetManualSaveClickWatcher()
+    {
+        if (_driver is IJavaScriptExecutor js)
+        {
+            js.ExecuteScript("window.__manpowerSaveClicked = false;");
+        }
     }
 
     private bool FillFunctionRow(ManpowerEntry entry)
@@ -208,13 +257,19 @@ public sealed class ManpowerSeleniumUploader : IDisposable
                 var element = FindByCss(cssSelector);
                 if (element.TagName.Equals("select", StringComparison.OrdinalIgnoreCase))
                 {
+                    var values = new[] { value }.Concat(alternateSelectTexts).ToArray();
+                    if (TrySetSelect2Value(element, values))
+                    {
+                        return;
+                    }
+
                     var select = new SelectElement(element);
-                    TrySelect(select, [value, .. alternateSelectTexts]);
+                    TrySelect(select, values);
                     return;
                 }
 
                 element.Clear();
-                element.SendKeys(value);
+                TypeSlowly(element, value, 1000);
                 element.SendKeys(SeleniumKeys.Tab);
                 return;
             }
@@ -224,6 +279,105 @@ public sealed class ManpowerSeleniumUploader : IDisposable
             }
         }
     }
+    private bool TrySetSelect2Value(IWebElement selectElement, IReadOnlyList<string> values)
+    {
+        var selection = FindSelect2Selection(selectElement);
+        if (selection == null)
+        {
+            return false;
+        }
+
+        foreach (var value in values.Where(x => !string.IsNullOrWhiteSpace(x)))
+        {
+            try
+            {
+                _log($"Typing select2 value '{value}' one character per second.");
+                ClickElement(selection);
+                Thread.Sleep(500);
+
+                var searchInput = FindVisibleSelect2SearchInput();
+                if (searchInput != null)
+                {
+                    searchInput.SendKeys(SeleniumKeys.Control + "a");
+                    searchInput.SendKeys(SeleniumKeys.Backspace);
+                    TypeSlowly(searchInput, value, 1000);
+                }
+
+                var option = FindSelect2ResultOption(value);
+                if (option != null)
+                {
+                    ClickElement(option);
+                    Thread.Sleep(500);
+                    return true;
+                }
+
+                searchInput?.SendKeys(SeleniumKeys.Escape);
+            }
+            catch (WebDriverException ex) when (IsUnexpectedAlertOpen(ex))
+            {
+                AcceptApplicationAlertIfPresent();
+            }
+            catch (WebDriverException ex) when (IsClickOrInteractIssue(ex))
+            {
+                _log($"Select2 interaction was blocked ({ex.Message.Split(Environment.NewLine)[0]}). Trying the next value/fallback.");
+            }
+        }
+
+        return false;
+    }
+
+    private IWebElement? FindSelect2Selection(IWebElement selectElement)
+    {
+        if (_driver is not IJavaScriptExecutor js)
+        {
+            return null;
+        }
+
+        return js.ExecuteScript(
+            "const select = arguments[0];"
+            + "let selection = null;"
+            + "if (select.id) {"
+            + "  const rendered = document.getElementById('select2-' + select.id + '-container');"
+            + "  if (rendered) selection = rendered.closest('.select2-selection') || rendered;"
+            + "}"
+            + "if (!selection && select.nextElementSibling) selection = select.nextElementSibling.querySelector('.select2-selection');"
+            + "if (!selection) selection = document.querySelector('[aria-labelledby^=\"select2-' + select.id + '\"][role=\"combobox\"]');"
+            + "return selection;",
+            selectElement) as IWebElement;
+    }
+
+    private IWebElement? FindVisibleSelect2SearchInput()
+    {
+        return _driver?.FindElements(By.CssSelector("input.select2-search__field"))
+            .LastOrDefault(x => x.Displayed && x.Enabled);
+    }
+
+    private IWebElement? FindSelect2ResultOption(string value)
+    {
+        var expected = Normalize(value);
+        for (var attempt = 0; attempt < 10; attempt++)
+        {
+            var options = _driver?.FindElements(By.CssSelector(".select2-results__option[role='option']"))
+                .Where(x => x.Displayed)
+                .ToList() ?? [];
+            var exact = options.FirstOrDefault(x => Normalize(x.Text) == expected);
+            if (exact != null)
+            {
+                return exact;
+            }
+
+            var contains = options.FirstOrDefault(x => Normalize(x.Text).Contains(expected, StringComparison.OrdinalIgnoreCase));
+            if (contains != null)
+            {
+                return contains;
+            }
+
+            Thread.Sleep(300);
+        }
+
+        return null;
+    }
+
 
     private static void TrySelect(SelectElement select, IReadOnlyList<string> values)
     {
@@ -316,12 +470,12 @@ public sealed class ManpowerSeleniumUploader : IDisposable
         }
     }
 
-    private static void TypeSlowly(IWebElement element, string text)
+    private static void TypeSlowly(IWebElement element, string text, int delayMilliseconds = 150)
     {
         foreach (var character in text)
         {
             element.SendKeys(character.ToString());
-            Thread.Sleep(150);
+            Thread.Sleep(delayMilliseconds);
         }
     }
 
@@ -409,6 +563,18 @@ public sealed class ManpowerSeleniumUploader : IDisposable
         _log($"{action}. Waiting {EntryDelayMilliseconds / 1000} seconds before continuing.");
         Thread.Sleep(EntryDelayMilliseconds);
     }
+    private void ClickElement(IWebElement element)
+    {
+        try
+        {
+            element.Click();
+        }
+        catch (WebDriverException ex) when (IsClickOrInteractIssue(ex) && _driver is IJavaScriptExecutor js)
+        {
+            js.ExecuteScript("arguments[0].click();", element);
+        }
+    }
+
 
     private void ClickByCss(string cssSelector)
     {
