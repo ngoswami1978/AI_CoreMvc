@@ -28,9 +28,21 @@ Rows without `UnitName` or `Function` are skipped.
 3. Run `dotnet restore ManpowerMonitoringTool/ManpowerMonitoringTool.csproj`.
 4. Run `dotnet run --project ManpowerMonitoringTool/ManpowerMonitoringTool.csproj`.
 5. Choose the Excel file and click **Load Preview**.
-6. Enter the website URL and CSS selectors for the unit, year, month, Go/Search button, Save button, and manpower cost table.
+6. Enter the website URL, CSS selectors, and speed monitor values for action delay, dropdown typing speed, and cost typing speed.
 7. Click **Start Browser**. Log in manually if your website requires login.
 8. Click **Run Upload**. For consecutive rows with the same UnitName/year/month, the tool selects month/year/UnitName once, clicks the Go/Search button, highlights each function row while slowly entering values, then waits until you click the Save button manually after the whole group is filled.
+
+## Speed monitor controls
+
+Use these controls to make the automation faster or slower before clicking **Run Upload**:
+
+| Control | Default | What it changes |
+| --- | --- | --- |
+| Action delay (ms) | `2000` | Pause before each major action/group/function entry. |
+| Dropdown speed (ms) | `1000` | Delay between each typed character in Select2 dropdown searches. |
+| Cost speed (ms) | `150` | Delay between each typed character in manpower cost inputs. |
+
+Set a lower value to speed up typing, or a higher value to slow it down so you can monitor each step.
 
 ## Selector setup
 
@@ -46,8 +58,8 @@ The default selector values are examples only:
 | Save button | `#convert_table_newid` | Button the tool watches after each consecutive UnitName/year/month group; you click it manually to continue. Leave blank to skip waiting. |
 | Cost table | `#MANPOWERCOST_FUNCTIONWISE_TAB2` | Manpower cost table containing rows such as Finance, Quality, Manufacturing, and Maintenance. |
 
-Before selecting month/year/unit values, the automation removes disabled/read-only attributes from those controls and their options, opens Select2 dropdowns, types the visible dropdown search text one character per second, and selects the matching option; it does not click the old cancel/revert button. The automation matches the Excel `Function` value to the first cell of each table row after removing spaces, slash characters, and punctuation. This handles labels like `Manufacturing/  Operations` and `Manufacturing/ Operations`.
+Before selecting month/year/unit values, the automation removes disabled/read-only attributes from those controls and their options, opens Select2 dropdowns, types the visible dropdown search text using the configured dropdown speed, and selects the matching option; it does not click the old cancel/revert button. The automation matches the Excel `Function` value to the first cell of each table row after removing spaces, slash characters, and punctuation. This handles labels like `Manufacturing/  Operations` and `Manufacturing/ Operations`.
 
 ## Important safety note
 
-The tool scrolls each cost input into a safe typing position, types values slowly without using a mouse click, and waits for your manual Save button (`#convert_table_newid`) click after each consecutive UnitName/year/month group. If the browser shows an application alert or confirmation such as `Want to Clear Data?`, the automation accepts it automatically and continues. Review the site after upload to confirm all rows were saved correctly.
+The tool scrolls each cost input into a safe typing position, types values using the configured cost speed without using a mouse click, and waits for your manual Save button (`#convert_table_newid`) click after each consecutive UnitName/year/month group. If the browser shows an application alert or confirmation such as `Want to Clear Data?`, the automation accepts it automatically and continues. Review the site after upload to confirm all rows were saved correctly.

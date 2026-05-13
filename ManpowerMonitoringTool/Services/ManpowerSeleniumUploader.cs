@@ -10,9 +10,7 @@ namespace ManpowerMonitoringTool.Services;
 
 public sealed class ManpowerSeleniumUploader : IDisposable
 {
-    private const int EntryDelayMilliseconds = 2000;
-
-    private readonly BrowserAutomationOptions _options;
+    private BrowserAutomationOptions _options;
     private readonly Action<string> _log;
     private readonly Action<ManpowerEntry>? _selectGridEntry;
     private IWebDriver? _driver;
@@ -23,6 +21,12 @@ public sealed class ManpowerSeleniumUploader : IDisposable
         _options = options;
         _log = log;
         _selectGridEntry = selectGridEntry;
+    }
+
+    public void UpdateOptions(BrowserAutomationOptions options)
+    {
+        _options = options;
+        _log($"Speed settings updated: action delay={_options.ActionDelayMilliseconds}ms, dropdown typing={_options.DropdownTypingDelayMilliseconds}ms, cost typing={_options.CostTypingDelayMilliseconds}ms.");
     }
 
     public void StartBrowser()
@@ -269,7 +273,7 @@ public sealed class ManpowerSeleniumUploader : IDisposable
                 }
 
                 element.Clear();
-                TypeSlowly(element, value, 1000);
+                TypeSlowly(element, value, _options.DropdownTypingDelayMilliseconds);
                 element.SendKeys(SeleniumKeys.Tab);
                 return;
             }
@@ -291,7 +295,7 @@ public sealed class ManpowerSeleniumUploader : IDisposable
         {
             try
             {
-                _log($"Typing select2 value '{value}' one character per second.");
+                _log($"Typing select2 value '{value}' using the configured speed.");
                 ClickElement(selection);
                 Thread.Sleep(500);
 
@@ -300,7 +304,7 @@ public sealed class ManpowerSeleniumUploader : IDisposable
                 {
                     searchInput.SendKeys(SeleniumKeys.Control + "a");
                     searchInput.SendKeys(SeleniumKeys.Backspace);
-                    TypeSlowly(searchInput, value, 1000);
+                    TypeSlowly(searchInput, value, _options.DropdownTypingDelayMilliseconds);
                 }
 
                 var option = FindSelect2ResultOption(value);
@@ -424,7 +428,7 @@ public sealed class ManpowerSeleniumUploader : IDisposable
                 FocusElementForTyping(element);
                 element.SendKeys(SeleniumKeys.Control + "a");
                 element.SendKeys(SeleniumKeys.Backspace);
-                TypeSlowly(element, text);
+                TypeSlowly(element, text, _options.CostTypingDelayMilliseconds);
                 element.SendKeys(SeleniumKeys.Tab);
                 return;
             }
@@ -560,8 +564,8 @@ public sealed class ManpowerSeleniumUploader : IDisposable
 
     private void WaitBeforeEntry(string action)
     {
-        _log($"{action}. Waiting {EntryDelayMilliseconds / 1000} seconds before continuing.");
-        Thread.Sleep(EntryDelayMilliseconds);
+        _log($"{action}. Waiting {_options.ActionDelayMilliseconds} ms before continuing.");
+        Thread.Sleep(_options.ActionDelayMilliseconds);
     }
     private void ClickElement(IWebElement element)
     {

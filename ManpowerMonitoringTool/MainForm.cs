@@ -16,6 +16,9 @@ public sealed class MainForm : Form
     private readonly TextBox _searchSelectorTextBox = new() { Anchor = AnchorStyles.Left | AnchorStyles.Right, Text = "#btnSearch" };
     private readonly TextBox _saveSelectorTextBox = new() { Anchor = AnchorStyles.Left | AnchorStyles.Right, Text = "#convert_table_newid" };
     private readonly TextBox _tableSelectorTextBox = new() { Anchor = AnchorStyles.Left | AnchorStyles.Right, Text = "#MANPOWERCOST_FUNCTIONWISE_TAB2" };
+    private readonly NumericUpDown _actionDelayInput = CreateDelayInput(2000);
+    private readonly NumericUpDown _dropdownTypingDelayInput = CreateDelayInput(1000);
+    private readonly NumericUpDown _costTypingDelayInput = CreateDelayInput(150);
     private readonly CheckBox _keepBrowserOpenCheckBox = new() { Text = "Keep browser open after upload", Checked = true, AutoSize = true };
     private readonly DataGridView _grid = new() { Dock = DockStyle.Fill, AutoGenerateColumns = true, ReadOnly = true, AllowUserToAddRows = false };
     private readonly TextBox _logTextBox = new() { Dock = DockStyle.Fill, Multiline = true, ScrollBars = ScrollBars.Vertical, ReadOnly = true };
@@ -85,6 +88,9 @@ public sealed class MainForm : Form
         AddField(panel, "Go/Search button", _searchSelectorTextBox, 2, 1);
         AddField(panel, "Cost table", _tableSelectorTextBox, 4, 1);
         AddField(panel, "Save button", _saveSelectorTextBox, 0, 2);
+        AddField(panel, "Action delay (ms)", _actionDelayInput, 2, 2);
+        AddField(panel, "Dropdown speed (ms)", _dropdownTypingDelayInput, 4, 2);
+        AddField(panel, "Cost speed (ms)", _costTypingDelayInput, 0, 3);
 
         var startButton = new Button { Text = "Start Browser", AutoSize = true };
         startButton.Click += (_, _) => StartBrowser();
@@ -97,7 +103,7 @@ public sealed class MainForm : Form
         actions.Controls.Add(_runButton);
         actions.Controls.Add(stopButton);
         actions.Controls.Add(_keepBrowserOpenCheckBox);
-        panel.Controls.Add(actions, 0, 3);
+        panel.Controls.Add(actions, 0, 4);
         panel.SetColumnSpan(actions, 6);
         return panel;
     }
@@ -106,6 +112,19 @@ public sealed class MainForm : Form
     {
         panel.Controls.Add(new Label { Text = label, AutoSize = true, Anchor = AnchorStyles.Left, Margin = new Padding(3, 6, 8, 3) }, column, row);
         panel.Controls.Add(control, column + 1, row);
+    }
+
+    private static NumericUpDown CreateDelayInput(int value)
+    {
+        return new NumericUpDown
+        {
+            Anchor = AnchorStyles.Left | AnchorStyles.Right,
+            Minimum = 0,
+            Maximum = 10000,
+            Increment = 50,
+            Value = value,
+            ThousandsSeparator = true
+        };
     }
 
     private void BrowseExcel()
@@ -145,7 +164,9 @@ public sealed class MainForm : Form
     {
         try
         {
-            _uploader ??= new ManpowerSeleniumUploader(BuildOptions(), Log, HighlightGridEntry);
+            var options = BuildOptions();
+            _uploader ??= new ManpowerSeleniumUploader(options, Log, HighlightGridEntry);
+            _uploader.UpdateOptions(options);
             _uploader.StartBrowser();
         }
         catch (Exception ex)
@@ -171,7 +192,9 @@ public sealed class MainForm : Form
         _cancellationTokenSource = new CancellationTokenSource();
         try
         {
-            _uploader ??= new ManpowerSeleniumUploader(BuildOptions(), Log, HighlightGridEntry);
+            var options = BuildOptions();
+            _uploader ??= new ManpowerSeleniumUploader(options, Log, HighlightGridEntry);
+            _uploader.UpdateOptions(options);
             var rows = _entries.ToList();
             await Task.Run(() => _uploader.Upload(rows, _cancellationTokenSource.Token));
         }
@@ -229,6 +252,9 @@ public sealed class MainForm : Form
             SearchButtonSelector = _searchSelectorTextBox.Text.Trim(),
             SaveButtonSelector = _saveSelectorTextBox.Text.Trim(),
             TableSelector = _tableSelectorTextBox.Text.Trim(),
+            ActionDelayMilliseconds = (int)_actionDelayInput.Value,
+            DropdownTypingDelayMilliseconds = (int)_dropdownTypingDelayInput.Value,
+            CostTypingDelayMilliseconds = (int)_costTypingDelayInput.Value,
             KeepBrowserOpen = _keepBrowserOpenCheckBox.Checked
         };
     }
