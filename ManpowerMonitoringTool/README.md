@@ -28,23 +28,20 @@ Rows without `UnitName` or `Function` are skipped.
 3. Run `dotnet restore ManpowerMonitoringTool/ManpowerMonitoringTool.csproj`.
 4. Run `dotnet run --project ManpowerMonitoringTool/ManpowerMonitoringTool.csproj`.
 5. Choose the Excel file and click **Load Preview**.
-6. Enter the website URL, CSS selectors, and speed monitor values for action delay, dropdown typing speed, and cost typing speed.
+6. Enter the website URL and CSS selectors, then use the runtime speed slider if you want to speed up or slow down automation.
 7. Click **Start Browser**. Log in manually if your website requires login.
 8. Click **Run Upload**. For consecutive rows with the same UnitName/year/month, the tool selects month/year/UnitName once, clicks the Go/Search button, highlights each function row while slowly entering values, then waits until you click the Save button manually after the whole group is filled.
 
-## Speed monitor controls
+## Speed monitor control
 
-Use these controls before or during **Run Upload**; changes are applied to the running automation immediately:
+Use the **Runtime speed** slider before or during **Run Upload**; changes are applied to the running automation immediately:
 
-| Control | Default | What it changes |
-| --- | --- | --- |
-| Action delay (ms) | `2000` | Pause before each major action/group/function entry. |
-| Dropdown speed (ms) | `1000` | Delay between each typed character in Select2 dropdown searches. |
-| Cost speed (ms) | `150` | Delay between each typed character in manpower cost inputs. |
-| Speed Up | n/a | Reduces all delay values by 25% immediately. |
-| Slow Down | n/a | Increases all delay values by 25% immediately. |
+| Slider direction | Effect |
+| --- | --- |
+| Move right / higher percentage | Increases speed by reducing action, dropdown typing, and cost typing delays. |
+| Move left / lower percentage | Decreases speed by increasing action, dropdown typing, and cost typing delays. |
 
-Set a lower millisecond value or click **Speed Up** to increase speed. Set a higher value or click **Slow Down** to decrease speed while the upload is running.
+At `100%`, the base delays are: 2000 ms action pause, 1000 ms per Select2 dropdown character, and 150 ms per cost-input character.
 
 ## Selector setup
 

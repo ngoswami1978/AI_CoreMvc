@@ -10,7 +10,7 @@ namespace ManpowerMonitoringTool.Services;
 
 public sealed class ManpowerSeleniumUploader : IDisposable
 {
-    private BrowserAutomationOptions _options;
+    private volatile BrowserAutomationOptions _options;
     private readonly Action<string> _log;
     private readonly Action<ManpowerEntry>? _selectGridEntry;
     private IWebDriver? _driver;

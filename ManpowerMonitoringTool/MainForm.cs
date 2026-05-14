@@ -16,14 +16,16 @@ public sealed class MainForm : Form
     private readonly TextBox _searchSelectorTextBox = new() { Anchor = AnchorStyles.Left | AnchorStyles.Right, Text = "#btnSearch" };
     private readonly TextBox _saveSelectorTextBox = new() { Anchor = AnchorStyles.Left | AnchorStyles.Right, Text = "#convert_table_newid" };
     private readonly TextBox _tableSelectorTextBox = new() { Anchor = AnchorStyles.Left | AnchorStyles.Right, Text = "#MANPOWERCOST_FUNCTIONWISE_TAB2" };
-    private readonly NumericUpDown _actionDelayInput = CreateDelayInput(2000);
-    private readonly NumericUpDown _dropdownTypingDelayInput = CreateDelayInput(1000);
-    private readonly NumericUpDown _costTypingDelayInput = CreateDelayInput(150);
+    private const int BaseActionDelayMilliseconds = 2000;
+    private const int BaseDropdownTypingDelayMilliseconds = 1000;
+    private const int BaseCostTypingDelayMilliseconds = 150;
+
+    private readonly TrackBar _speedSlider = CreateSpeedSlider();
+    private readonly Label _speedValueLabel = new() { Text = "Speed: 100%", AutoSize = true, Anchor = AnchorStyles.Left };
     private readonly CheckBox _keepBrowserOpenCheckBox = new() { Text = "Keep browser open after upload", Checked = true, AutoSize = true };
     private readonly DataGridView _grid = new() { Dock = DockStyle.Fill, AutoGenerateColumns = true, ReadOnly = true, AllowUserToAddRows = false };
     private readonly TextBox _logTextBox = new() { Dock = DockStyle.Fill, Multiline = true, ScrollBars = ScrollBars.Vertical, ReadOnly = true };
     private readonly Button _runButton = new() { Text = "Run Upload", AutoSize = true };
-    private bool _suppressSpeedChangeEvents;
     private CancellationTokenSource? _cancellationTokenSource;
     private ManpowerSeleniumUploader? _uploader;
 
@@ -89,32 +91,23 @@ public sealed class MainForm : Form
         AddField(panel, "Go/Search button", _searchSelectorTextBox, 2, 1);
         AddField(panel, "Cost table", _tableSelectorTextBox, 4, 1);
         AddField(panel, "Save button", _saveSelectorTextBox, 0, 2);
-        AddField(panel, "Action delay (ms)", _actionDelayInput, 2, 2);
-        AddField(panel, "Dropdown speed (ms)", _dropdownTypingDelayInput, 4, 2);
-        AddField(panel, "Cost speed (ms)", _costTypingDelayInput, 0, 3);
+        AddField(panel, "Runtime speed", _speedSlider, 2, 2);
+        panel.Controls.Add(_speedValueLabel, 4, 2);
 
-        _actionDelayInput.ValueChanged += (_, _) => ApplyRuntimeSpeedSettings();
-        _dropdownTypingDelayInput.ValueChanged += (_, _) => ApplyRuntimeSpeedSettings();
-        _costTypingDelayInput.ValueChanged += (_, _) => ApplyRuntimeSpeedSettings();
+        _speedSlider.ValueChanged += (_, _) => ApplyRuntimeSpeedSettings();
 
         var startButton = new Button { Text = "Start Browser", AutoSize = true };
         startButton.Click += (_, _) => StartBrowser();
         _runButton.Click += async (_, _) => await RunUploadAsync();
         var stopButton = new Button { Text = "Stop", AutoSize = true };
         stopButton.Click += (_, _) => _cancellationTokenSource?.Cancel();
-        var speedUpButton = new Button { Text = "Speed Up", AutoSize = true };
-        speedUpButton.Click += (_, _) => AdjustSpeed(0.75m);
-        var slowDownButton = new Button { Text = "Slow Down", AutoSize = true };
-        slowDownButton.Click += (_, _) => AdjustSpeed(1.25m);
 
         var actions = new FlowLayoutPanel { FlowDirection = FlowDirection.LeftToRight, Dock = DockStyle.Fill, AutoSize = true };
         actions.Controls.Add(startButton);
         actions.Controls.Add(_runButton);
         actions.Controls.Add(stopButton);
-        actions.Controls.Add(speedUpButton);
-        actions.Controls.Add(slowDownButton);
         actions.Controls.Add(_keepBrowserOpenCheckBox);
-        panel.Controls.Add(actions, 0, 4);
+        panel.Controls.Add(actions, 0, 3);
         panel.SetColumnSpan(actions, 6);
         return panel;
     }
@@ -125,57 +118,33 @@ public sealed class MainForm : Form
         panel.Controls.Add(control, column + 1, row);
     }
 
-    private static NumericUpDown CreateDelayInput(int value)
+    private static TrackBar CreateSpeedSlider()
     {
-        return new NumericUpDown
+        return new TrackBar
         {
             Anchor = AnchorStyles.Left | AnchorStyles.Right,
-            Minimum = 0,
-            Maximum = 10000,
-            Increment = 50,
-            Value = value,
-            ThousandsSeparator = true
+            Minimum = 25,
+            Maximum = 400,
+            TickFrequency = 25,
+            SmallChange = 25,
+            LargeChange = 50,
+            Value = 100,
+            AutoSize = false,
+            Height = 32
         };
-    }
-
-    private void AdjustSpeed(decimal multiplier)
-    {
-        _suppressSpeedChangeEvents = true;
-        try
-        {
-            _actionDelayInput.Value = ScaleDelay(_actionDelayInput, multiplier);
-            _dropdownTypingDelayInput.Value = ScaleDelay(_dropdownTypingDelayInput, multiplier);
-            _costTypingDelayInput.Value = ScaleDelay(_costTypingDelayInput, multiplier);
-        }
-        finally
-        {
-            _suppressSpeedChangeEvents = false;
-        }
-
-        ApplyRuntimeSpeedSettings();
-    }
-
-    private static decimal ScaleDelay(NumericUpDown input, decimal multiplier)
-    {
-        var scaled = Math.Round(input.Value * multiplier / input.Increment) * input.Increment;
-        if (input.Value > 0 && scaled == 0)
-        {
-            scaled = input.Increment;
-        }
-
-        return Math.Clamp(scaled, input.Minimum, input.Maximum);
     }
 
     private void ApplyRuntimeSpeedSettings()
     {
-        if (_suppressSpeedChangeEvents)
-        {
-            return;
-        }
-
         var options = BuildOptions();
+        _speedValueLabel.Text = $"Speed: {_speedSlider.Value}%";
         _uploader?.UpdateOptions(options);
-        Log($"Runtime speed updated: action delay={options.ActionDelayMilliseconds}ms, dropdown speed={options.DropdownTypingDelayMilliseconds}ms, cost speed={options.CostTypingDelayMilliseconds}ms.");
+        Log($"Runtime speed updated: speed={_speedSlider.Value}%, action delay={options.ActionDelayMilliseconds}ms, dropdown delay={options.DropdownTypingDelayMilliseconds}ms, cost delay={options.CostTypingDelayMilliseconds}ms.");
+    }
+
+    private int CalculateDelay(int baseDelayMilliseconds)
+    {
+        return Math.Max(0, (int)Math.Round(baseDelayMilliseconds * 100m / _speedSlider.Value));
     }
 
     private void BrowseExcel()
@@ -303,9 +272,9 @@ public sealed class MainForm : Form
             SearchButtonSelector = _searchSelectorTextBox.Text.Trim(),
             SaveButtonSelector = _saveSelectorTextBox.Text.Trim(),
             TableSelector = _tableSelectorTextBox.Text.Trim(),
-            ActionDelayMilliseconds = (int)_actionDelayInput.Value,
-            DropdownTypingDelayMilliseconds = (int)_dropdownTypingDelayInput.Value,
-            CostTypingDelayMilliseconds = (int)_costTypingDelayInput.Value,
+            ActionDelayMilliseconds = CalculateDelay(BaseActionDelayMilliseconds),
+            DropdownTypingDelayMilliseconds = CalculateDelay(BaseDropdownTypingDelayMilliseconds),
+            CostTypingDelayMilliseconds = CalculateDelay(BaseCostTypingDelayMilliseconds),
             KeepBrowserOpen = _keepBrowserOpenCheckBox.Checked
         };
     }
