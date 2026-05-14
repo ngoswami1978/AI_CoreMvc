@@ -23,6 +23,7 @@ public sealed class MainForm : Form
     private readonly DataGridView _grid = new() { Dock = DockStyle.Fill, AutoGenerateColumns = true, ReadOnly = true, AllowUserToAddRows = false };
     private readonly TextBox _logTextBox = new() { Dock = DockStyle.Fill, Multiline = true, ScrollBars = ScrollBars.Vertical, ReadOnly = true };
     private readonly Button _runButton = new() { Text = "Run Upload", AutoSize = true };
+    private bool _suppressSpeedChangeEvents;
     private CancellationTokenSource? _cancellationTokenSource;
     private ManpowerSeleniumUploader? _uploader;
 
@@ -92,16 +93,26 @@ public sealed class MainForm : Form
         AddField(panel, "Dropdown speed (ms)", _dropdownTypingDelayInput, 4, 2);
         AddField(panel, "Cost speed (ms)", _costTypingDelayInput, 0, 3);
 
+        _actionDelayInput.ValueChanged += (_, _) => ApplyRuntimeSpeedSettings();
+        _dropdownTypingDelayInput.ValueChanged += (_, _) => ApplyRuntimeSpeedSettings();
+        _costTypingDelayInput.ValueChanged += (_, _) => ApplyRuntimeSpeedSettings();
+
         var startButton = new Button { Text = "Start Browser", AutoSize = true };
         startButton.Click += (_, _) => StartBrowser();
         _runButton.Click += async (_, _) => await RunUploadAsync();
         var stopButton = new Button { Text = "Stop", AutoSize = true };
         stopButton.Click += (_, _) => _cancellationTokenSource?.Cancel();
+        var speedUpButton = new Button { Text = "Speed Up", AutoSize = true };
+        speedUpButton.Click += (_, _) => AdjustSpeed(0.75m);
+        var slowDownButton = new Button { Text = "Slow Down", AutoSize = true };
+        slowDownButton.Click += (_, _) => AdjustSpeed(1.25m);
 
         var actions = new FlowLayoutPanel { FlowDirection = FlowDirection.LeftToRight, Dock = DockStyle.Fill, AutoSize = true };
         actions.Controls.Add(startButton);
         actions.Controls.Add(_runButton);
         actions.Controls.Add(stopButton);
+        actions.Controls.Add(speedUpButton);
+        actions.Controls.Add(slowDownButton);
         actions.Controls.Add(_keepBrowserOpenCheckBox);
         panel.Controls.Add(actions, 0, 4);
         panel.SetColumnSpan(actions, 6);
@@ -125,6 +136,46 @@ public sealed class MainForm : Form
             Value = value,
             ThousandsSeparator = true
         };
+    }
+
+    private void AdjustSpeed(decimal multiplier)
+    {
+        _suppressSpeedChangeEvents = true;
+        try
+        {
+            _actionDelayInput.Value = ScaleDelay(_actionDelayInput, multiplier);
+            _dropdownTypingDelayInput.Value = ScaleDelay(_dropdownTypingDelayInput, multiplier);
+            _costTypingDelayInput.Value = ScaleDelay(_costTypingDelayInput, multiplier);
+        }
+        finally
+        {
+            _suppressSpeedChangeEvents = false;
+        }
+
+        ApplyRuntimeSpeedSettings();
+    }
+
+    private static decimal ScaleDelay(NumericUpDown input, decimal multiplier)
+    {
+        var scaled = Math.Round(input.Value * multiplier / input.Increment) * input.Increment;
+        if (input.Value > 0 && scaled == 0)
+        {
+            scaled = input.Increment;
+        }
+
+        return Math.Clamp(scaled, input.Minimum, input.Maximum);
+    }
+
+    private void ApplyRuntimeSpeedSettings()
+    {
+        if (_suppressSpeedChangeEvents)
+        {
+            return;
+        }
+
+        var options = BuildOptions();
+        _uploader?.UpdateOptions(options);
+        Log($"Runtime speed updated: action delay={options.ActionDelayMilliseconds}ms, dropdown speed={options.DropdownTypingDelayMilliseconds}ms, cost speed={options.CostTypingDelayMilliseconds}ms.");
     }
 
     private void BrowseExcel()

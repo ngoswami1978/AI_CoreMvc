@@ -273,7 +273,7 @@ public sealed class ManpowerSeleniumUploader : IDisposable
                 }
 
                 element.Clear();
-                TypeSlowly(element, value, _options.DropdownTypingDelayMilliseconds);
+                TypeSlowly(element, value, () => _options.DropdownTypingDelayMilliseconds);
                 element.SendKeys(SeleniumKeys.Tab);
                 return;
             }
@@ -304,7 +304,7 @@ public sealed class ManpowerSeleniumUploader : IDisposable
                 {
                     searchInput.SendKeys(SeleniumKeys.Control + "a");
                     searchInput.SendKeys(SeleniumKeys.Backspace);
-                    TypeSlowly(searchInput, value, _options.DropdownTypingDelayMilliseconds);
+                    TypeSlowly(searchInput, value, () => _options.DropdownTypingDelayMilliseconds);
                 }
 
                 var option = FindSelect2ResultOption(value);
@@ -428,7 +428,7 @@ public sealed class ManpowerSeleniumUploader : IDisposable
                 FocusElementForTyping(element);
                 element.SendKeys(SeleniumKeys.Control + "a");
                 element.SendKeys(SeleniumKeys.Backspace);
-                TypeSlowly(element, text, _options.CostTypingDelayMilliseconds);
+                TypeSlowly(element, text, () => _options.CostTypingDelayMilliseconds);
                 element.SendKeys(SeleniumKeys.Tab);
                 return;
             }
@@ -474,12 +474,12 @@ public sealed class ManpowerSeleniumUploader : IDisposable
         }
     }
 
-    private static void TypeSlowly(IWebElement element, string text, int delayMilliseconds = 150)
+    private static void TypeSlowly(IWebElement element, string text, Func<int> delayProvider)
     {
         foreach (var character in text)
         {
             element.SendKeys(character.ToString());
-            Thread.Sleep(delayMilliseconds);
+            Thread.Sleep(Math.Max(0, delayProvider()));
         }
     }
 

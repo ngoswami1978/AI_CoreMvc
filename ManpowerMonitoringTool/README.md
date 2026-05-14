@@ -34,15 +34,17 @@ Rows without `UnitName` or `Function` are skipped.
 
 ## Speed monitor controls
 
-Use these controls to make the automation faster or slower before clicking **Run Upload**:
+Use these controls before or during **Run Upload**; changes are applied to the running automation immediately:
 
 | Control | Default | What it changes |
 | --- | --- | --- |
 | Action delay (ms) | `2000` | Pause before each major action/group/function entry. |
 | Dropdown speed (ms) | `1000` | Delay between each typed character in Select2 dropdown searches. |
 | Cost speed (ms) | `150` | Delay between each typed character in manpower cost inputs. |
+| Speed Up | n/a | Reduces all delay values by 25% immediately. |
+| Slow Down | n/a | Increases all delay values by 25% immediately. |
 
-Set a lower value to speed up typing, or a higher value to slow it down so you can monitor each step.
+Set a lower millisecond value or click **Speed Up** to increase speed. Set a higher value or click **Slow Down** to decrease speed while the upload is running.
 
 ## Selector setup
 
